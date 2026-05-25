@@ -485,16 +485,9 @@ function updateDashboard() {
   // Statut : PERSO versé ce mois réel vs effort recommandé
   const moisReel = MOIS_COURANT; // mai = 3, toujours fixe
   // Cumul AVANT le mois réel en cours (sans compter mai)
-  const cumulAvantReel = moisReel > 0 ? (() => {
-    let t = SOLDE_DEPART;
-    for (let i = 0; i < moisReel; i++) {
-      const m = state.mois['M'+i];
-      if (!m || m._prefilled) continue;
-      t += calcMonthTotal(m, i);
-    }
-    return t;
-  })() : 0;
-  const moisRestantsReel = 12 - moisReel - 1; // mois APRÈS mai jusqu'à jan = 8
+  // Cumul réel avant mai = getCumul(moisReel-1), tous mois inclus
+  const cumulAvantReel = moisReel > 0 ? getCumul(moisReel - 1) : 0;
+  const moisRestantsReel = 12 - moisReel; // mois incluant mai jusqu'à jan = 9
   const effortRecommande = Math.max(0, Math.round((obj - cumulAvantReel) / moisRestantsReel - TONTINES_MENSUEL));
   const mReel = state.mois['M' + moisReel];
   const persoVerseReel = mReel && !mReel._prefilled ? (parseFloat(mReel.perso) || 0) : null;
