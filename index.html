@@ -324,11 +324,10 @@ const TONTINES = {
   ciyab:  { montant: 200 },
 };
 const GAINS = { elith: 2300, elitef: 500, ciyab: 2000 };
-// 3000€ PERSO + 4 mois de tontines (152+77+200=429€ × 4 = 1716€)
-const SOLDE_INITIAL_PERSO = 3000;
-const TONTINES_MENSUEL = 152 + 77 + 200; // 429€
-const MOIS_ECOULES_AVANT = 4; // fév, mar, avr, mai déjà versés
-const SOLDE_DEPART = SOLDE_INITIAL_PERSO + TONTINES_MENSUEL * MOIS_ECOULES_AVANT; // 4716€
+// Départ à 0 — tout est encodé mois par mois
+const SOLDE_INITIAL_PERSO = 0;
+const TONTINES_MENSUEL = 152 + 77 + 200; // 429€/mois fixes
+const SOLDE_DEPART = 0; // point de départ courbe
 const MOIS = ['Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc','Jan'];
 const MOIS_LONG = ['Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre','Janvier'];
 // Mois actuel (0=Fév…11=Jan). Aujourd'hui fin mai = mois index 3
@@ -378,12 +377,11 @@ async function loadData() {
   try {
     const data = await api({ action: 'getData' });
     state = data;
-    // Pré-remplir les mois passés si vides.
-    // Les tontines sont déjà dans SOLDE_DEPART, donc on ne stocke que perso=0.
+    // Pré-remplir fév/mar/avr si non encodés : tontines + 1000€ PERSO par défaut
     for (let i = 0; i < MOIS_COURANT; i++) {
       const k = 'M' + i;
       if (!state.mois[k]) {
-        state.mois[k] = { elith: false, elitef: false, ciyab: false, perso: 0, total: 0, _prefilled: true };
+        state.mois[k] = { elith: true, elitef: true, ciyab: true, perso: 1000, total: 1429, _prefilled: true };
       }
     }
     document.getElementById('objectif-input').value = state.currentObj;
@@ -427,28 +425,22 @@ function calcMonthTotal(m, idx) {
 }
 
 function getCumul(upTo) {
-  // Part du solde réel (3000 PERSO + 4x429 tontines pré-existantes = 4716€)
+  // Part de 0, chaque mois ajoute tontines + perso
   let total = SOLDE_DEPART;
   for (let i = 0; i <= upTo; i++) {
     const m = state.mois['M' + i];
     if (!m) continue;
-    if (m._prefilled) {
-      // Mois pré-remplis : tontines déjà comptées dans SOLDE_DEPART, on n'ajoute que le PERSO
-      total += parseFloat(m.perso) || 0;
-      // gains encodés manuellement
-    } else {
-      total += calcMonthTotal(m, i);
-    }
+    total += calcMonthTotal(m, i);
   }
   return total;
 }
 
 function getCumulPerso() {
-  // Cumul uniquement des versements PERSO encodés manuellement
-  let total = SOLDE_INITIAL_PERSO; // 3000€ de base
+  // Cumul PERSO uniquement (tontines exclues), tous mois confondus
+  let total = 0;
   for (let i = 0; i < 12; i++) {
     const m = state.mois['M' + i];
-    if (!m || m._prefilled) continue;
+    if (!m) continue;
     total += parseFloat(m.perso) || 0;
   }
   return total;
@@ -456,7 +448,7 @@ function getCumulPerso() {
 
 function getTrajectoire() {
   const obj = parseFloat(document.getElementById('objectif-input').value) || state.currentObj;
-  // Trajectoire : ligne droite de SOLDE_DEPART (4716€) vers objectif en 12 mois
+  // Trajectoire : ligne droite de 0 vers objectif en 12 mois
   // Index 0 = départ (avant fév), index 1 = fin fév, ..., index 12 = fin jan
   const traj = [];
   for (let i = 0; i <= 12; i++) {
@@ -488,7 +480,7 @@ function updateDashboard() {
   document.getElementById('m-ideal-sub').textContent = moisRestants + ' mois restants';
   const persoCumul = getCumulPerso();
   document.getElementById('m-perso-cumul').textContent = fmt(persoCumul);
-  document.getElementById('m-perso-sub').textContent = 'dont ' + fmt(SOLDE_INITIAL_PERSO) + ' de solde initial';
+  document.getElementById('m-perso-sub').textContent = 'tontines non comprises';
 
   // Statut : PERSO versé ce mois réel vs effort recommandé
   const moisReel = MOIS_COURANT; // mai = 3, toujours fixe
@@ -501,7 +493,7 @@ function updateDashboard() {
       t += calcMonthTotal(m, i);
     }
     return t;
-  })() : SOLDE_DEPART;
+  })() : 0;
   const moisRestantsReel = 12 - moisReel - 1; // mois APRÈS mai jusqu'à jan = 8
   const effortRecommande = Math.max(0, Math.round((obj - cumulAvantReel) / moisRestantsReel - TONTINES_MENSUEL));
   const mReel = state.mois['M' + moisReel];
@@ -550,10 +542,11 @@ function buildChart(obj, traj) {
   }
   const rythmeMensuel = lastPerso + TONTINES_MENSUEL; // ex: 1000 + 429 = 1429€/mois
 
-  // Projection : depuis dernier point réel, au rythme actuel
+  // Projection : depuis le mois APRÈS le dernier réel, au rythme actuel
   const projData = Array(13).fill(null);
   if (lastRealIdx < 12) {
-    for (let i = lastRealIdx; i <= 12; i++) {
+    projData[lastRealIdx] = lastRealVal; // point de jonction avec la courbe réelle
+    for (let i = lastRealIdx + 1; i <= 12; i++) {
       projData[i] = Math.round(lastRealVal + rythmeMensuel * (i - lastRealIdx));
     }
   }
@@ -695,7 +688,7 @@ function buildHistory() {
     el.innerHTML = '<span style="font-size:13px;color:var(--text3);font-family:\'DM Mono\',monospace">Aucune donnée enregistrée manuellement.</span>';
     return;
   }
-  let cumul = SOLDE_DEPART;
+  let cumul = 0;
   // Inclure aussi les mois préfilled dans le cumul
   let html = '';
   for (let i = 0; i < 12; i++) {
