@@ -319,9 +319,11 @@ const TONTINES = {
   ciyab:  { montant: 200 },
 };
 const GAINS = { elith: 2300, elitef: 500, ciyab: 2000 };
+// 3000€ PERSO + 4 mois de tontines (152+77+200=429€ × 4 = 1716€)
 const SOLDE_INITIAL_PERSO = 3000;
-// Tontines débutées en février (mois 0), donc 4 mois écoulés (fév, mar, avr, mai)
-// On pré-remplit les 4 premiers mois avec les tontines cochées
+const TONTINES_MENSUEL = 152 + 77 + 200; // 429€
+const MOIS_ECOULES_AVANT = 4; // fév, mar, avr, mai déjà versés
+const SOLDE_DEPART = SOLDE_INITIAL_PERSO + TONTINES_MENSUEL * MOIS_ECOULES_AVANT; // 4716€
 const MOIS = ['Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc','Jan'];
 const MOIS_LONG = ['Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre','Janvier'];
 // Mois actuel (0=Fév…11=Jan). Aujourd'hui fin mai = mois index 3
@@ -420,18 +422,41 @@ function calcMonthTotal(m, idx) {
 }
 
 function getCumul(upTo) {
-  let total = SOLDE_INITIAL_PERSO;
+  // Part du solde réel (3000 PERSO + 4x429 tontines pré-existantes = 4716€)
+  let total = SOLDE_DEPART;
   for (let i = 0; i <= upTo; i++) {
     const m = state.mois['M' + i];
-    if (m) total += calcMonthTotal(m, i);
+    if (!m) continue;
+    if (m._prefilled) {
+      // Mois pré-remplis : tontines déjà comptées dans SOLDE_DEPART, on n'ajoute que le PERSO
+      total += parseFloat(m.perso) || 0;
+      if (i === 11) total += 2300 + 500 + 2000;
+    } else {
+      total += calcMonthTotal(m, i);
+    }
   }
   return total;
 }
 
 function getTrajectoire() {
   const obj = parseFloat(document.getElementById('objectif-input').value) || state.currentObj;
-  const start = SOLDE_INITIAL_PERSO;
-  return Array.from({ length: 13 }, (_, i) => Math.round(start + (obj - start) / 12 * i));
+  // Trajectoire dynamique : part du cumul actuel, recalculée vers l'objectif sur les mois restants
+  const actuelCumul = getCumul(moisActif);
+  const moisRestants = 11 - moisActif; // mois encore à venir après le mois actif
+  // Ligne complète : points passés = cumul réel, points futurs = projection linéaire
+  const traj = [];
+  for (let i = 0; i <= 12; i++) {
+    if (i <= moisActif + 1) {
+      // Points passés : trajectoire idéale depuis SOLDE_DEPART
+      traj.push(Math.round(SOLDE_DEPART + (obj - SOLDE_DEPART) / 12 * i));
+    } else {
+      // Points futurs : depuis le cumul actuel vers l'objectif
+      const stepsLeft = 12 - (moisActif + 1);
+      const step = stepsLeft > 0 ? (obj - actuelCumul) / stepsLeft : 0;
+      traj.push(Math.round(actuelCumul + step * (i - (moisActif + 1))));
+    }
+  }
+  return traj;
 }
 
 // ─── DASHBOARD ────────────────────────────────────────
