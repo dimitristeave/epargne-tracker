@@ -373,12 +373,12 @@ async function loadData() {
   try {
     const data = await api({ action: 'getData' });
     state = data;
-    // Pré-remplir les mois passés si vides (tontines toutes payées depuis fév)
-    for (let i = 0; i <= MOIS_COURANT; i++) {
+    // Pré-remplir les mois passés si vides.
+    // Les tontines sont déjà dans SOLDE_DEPART, donc on ne stocke que perso=0.
+    for (let i = 0; i < MOIS_COURANT; i++) {
       const k = 'M' + i;
       if (!state.mois[k]) {
-        state.mois[k] = { elith: true, elitef: true, ciyab: true, perso: i === MOIS_COURANT ? 0 : 1000, total: 0, _prefilled: true };
-        state.mois[k].total = calcMonthTotal(state.mois[k], i);
+        state.mois[k] = { elith: false, elitef: false, ciyab: false, perso: 0, total: 0, _prefilled: true };
       }
     }
     document.getElementById('objectif-input').value = state.currentObj;
