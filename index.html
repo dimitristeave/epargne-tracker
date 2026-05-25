@@ -198,7 +198,7 @@ body{padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-ar
     <div class="metric-sub" id="m-reste-sub"></div>
   </div>
   <div class="metric">
-    <div class="metric-label">Effort / mois</div>
+    <div class="metric-label">PERSO à mettre / mois</div>
     <div class="metric-value" id="m-ideal">—</div>
     <div class="metric-sub" id="m-ideal-sub">pour atteindre l'objectif</div>
   </div>
@@ -206,6 +206,11 @@ body{padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-ar
     <div class="metric-label">Statut</div>
     <div id="m-statut">—</div>
     <div class="metric-sub" id="m-diff"></div>
+  </div>
+  <div class="metric" style="grid-column:1/-1">
+    <div class="metric-label">PERSO cumulé à ce jour</div>
+    <div class="metric-value good" id="m-perso-cumul">—</div>
+    <div class="metric-sub" id="m-perso-sub">épargne personnelle uniquement</div>
   </div>
 </div>
 <div class="status-row"><span class="badge" id="badge-global"></span></div>
@@ -438,6 +443,17 @@ function getCumul(upTo) {
   return total;
 }
 
+function getCumulPerso() {
+  // Cumul uniquement des versements PERSO encodés manuellement
+  let total = SOLDE_INITIAL_PERSO; // 3000€ de base
+  for (let i = 0; i < 12; i++) {
+    const m = state.mois['M' + i];
+    if (!m || m._prefilled) continue;
+    total += parseFloat(m.perso) || 0;
+  }
+  return total;
+}
+
 function getTrajectoire() {
   const obj = parseFloat(document.getElementById('objectif-input').value) || state.currentObj;
   // Trajectoire idéale simple : ligne droite de SOLDE_DEPART à obj en 12 mois
@@ -456,7 +472,8 @@ function updateDashboard() {
   const traj = getTrajectoire();
   const actuel = getCumul(moisActif);
   const moisRestants = 11 - moisActif; // mois restants après ce mois (juin→jan = 8 si on est en mai)
-  const effortMensuel = moisRestants > 0 ? Math.round((obj - actuel) / moisRestants) : (obj - actuel);
+  const effortTotal = moisRestants > 0 ? (obj - actuel) / moisRestants : (obj - actuel);
+  const effortMensuel = Math.max(0, Math.round(effortTotal - TONTINES_MENSUEL)); // PERSO only
   const ideal = traj[moisActif]; // pour le graphique
   const reste = Math.max(0, obj - actuel);
   const diff = actuel - ideal;
@@ -470,6 +487,9 @@ function updateDashboard() {
   document.getElementById('m-reste-sub').textContent = moisRestants + ' mois restants';
   document.getElementById('m-ideal').textContent = fmt(effortMensuel);
   document.getElementById('m-ideal-sub').textContent = moisRestants + ' mois restants';
+  const persoCumul = getCumulPerso();
+  document.getElementById('m-perso-cumul').textContent = fmt(persoCumul);
+  document.getElementById('m-perso-sub').textContent = 'dont ' + fmt(SOLDE_INITIAL_PERSO) + ' de solde initial';
 
   // Statut
   let label, cls;
