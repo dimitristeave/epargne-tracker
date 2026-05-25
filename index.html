@@ -456,9 +456,8 @@ function getCumulPerso() {
 
 function getTrajectoire() {
   const obj = parseFloat(document.getElementById('objectif-input').value) || state.currentObj;
-  // Trajectoire idéale simple : ligne droite de SOLDE_DEPART à obj en 12 mois
-  // Chaque index i correspond à la fin du mois i (0=départ, 1=fin fév, ..., 12=fin jan)
-  // moisActif=3 = fin mai → traj[3] = idéal fin mai
+  // Trajectoire : ligne droite de SOLDE_DEPART (4716€) vers objectif en 12 mois
+  // Index 0 = départ (avant fév), index 1 = fin fév, ..., index 12 = fin jan
   const traj = [];
   for (let i = 0; i <= 12; i++) {
     traj.push(Math.round(SOLDE_DEPART + (obj - SOLDE_DEPART) / 12 * i));
@@ -528,19 +527,34 @@ function updateDashboard() {
 // ─── CHART ────────────────────────────────────────────
 function buildChart(obj, traj) {
   const labels = ['Départ', ...MOIS];
+
+  // Courbe réelle : cumul mois encodés uniquement
   const realData = [SOLDE_DEPART];
   for (let i = 0; i < 12; i++) {
     const m = state.mois['M' + i];
-    realData.push(m ? getCumul(i) : null);
+    realData.push(m && !m._prefilled ? getCumul(i) : null);
   }
-  const projIdx = realData.filter(v => v !== null).length - 1;
-  const lastReal = realData[projIdx];
+
+  // Dernier point réel connu
+  let lastRealIdx = 0;
+  let lastRealVal = SOLDE_DEPART;
+  for (let i = 1; i <= 12; i++) {
+    if (realData[i] !== null) { lastRealIdx = i; lastRealVal = realData[i]; }
+  }
+
+  // Rythme actuel = PERSO du dernier mois encodé + tontines fixes
+  let lastPerso = 0;
+  for (let i = 11; i >= 0; i--) {
+    const m = state.mois['M' + i];
+    if (m && !m._prefilled) { lastPerso = parseFloat(m.perso) || 0; break; }
+  }
+  const rythmeMensuel = lastPerso + TONTINES_MENSUEL; // ex: 1000 + 429 = 1429€/mois
+
+  // Projection : depuis dernier point réel, au rythme actuel
   const projData = Array(13).fill(null);
-  if (projIdx < 12) {
-    const mLeft = 12 - projIdx;
-    const perM = (obj - lastReal) / mLeft;
-    for (let i = projIdx; i <= 12; i++) {
-      projData[i] = Math.round(lastReal + perM * (i - projIdx));
+  if (lastRealIdx < 12) {
+    for (let i = lastRealIdx; i <= 12; i++) {
+      projData[i] = Math.round(lastRealVal + rythmeMensuel * (i - lastRealIdx));
     }
   }
   if (myChart) myChart.destroy();
