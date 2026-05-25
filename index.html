@@ -417,7 +417,7 @@ function calcMonthTotal(m, idx) {
   if (m.elitef) t += 77;
   if (m.ciyab)  t += 200;
   t += parseFloat(m.perso) || 0;
-  if (idx === 11) t += 2300 + 500 + 2000; // gains tontines en janvier
+  // Les gains des tontines sont encodés manuellement dans le PERSO de janvier
   return t;
 }
 
@@ -430,7 +430,7 @@ function getCumul(upTo) {
     if (m._prefilled) {
       // Mois pré-remplis : tontines déjà comptées dans SOLDE_DEPART, on n'ajoute que le PERSO
       total += parseFloat(m.perso) || 0;
-      if (i === 11) total += 2300 + 500 + 2000;
+      // gains encodés manuellement
     } else {
       total += calcMonthTotal(m, i);
     }
