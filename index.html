@@ -198,9 +198,9 @@ body{padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-ar
     <div class="metric-sub" id="m-reste-sub"></div>
   </div>
   <div class="metric">
-    <div class="metric-label">Idéal ce mois</div>
+    <div class="metric-label">Effort / mois</div>
     <div class="metric-value" id="m-ideal">—</div>
-    <div class="metric-sub">trajectoire cible</div>
+    <div class="metric-sub" id="m-ideal-sub">pour atteindre l'objectif</div>
   </div>
   <div class="metric">
     <div class="metric-label">Statut</div>
@@ -440,21 +440,12 @@ function getCumul(upTo) {
 
 function getTrajectoire() {
   const obj = parseFloat(document.getElementById('objectif-input').value) || state.currentObj;
-  // Trajectoire dynamique : part du cumul actuel, recalculée vers l'objectif sur les mois restants
-  const actuelCumul = getCumul(moisActif);
-  const moisRestants = 11 - moisActif; // mois encore à venir après le mois actif
-  // Ligne complète : points passés = cumul réel, points futurs = projection linéaire
+  // Trajectoire idéale simple : ligne droite de SOLDE_DEPART à obj en 12 mois
+  // Chaque index i correspond à la fin du mois i (0=départ, 1=fin fév, ..., 12=fin jan)
+  // moisActif=3 = fin mai → traj[3] = idéal fin mai
   const traj = [];
   for (let i = 0; i <= 12; i++) {
-    if (i <= moisActif + 1) {
-      // Points passés : trajectoire idéale depuis SOLDE_DEPART
-      traj.push(Math.round(SOLDE_DEPART + (obj - SOLDE_DEPART) / 12 * i));
-    } else {
-      // Points futurs : depuis le cumul actuel vers l'objectif
-      const stepsLeft = 12 - (moisActif + 1);
-      const step = stepsLeft > 0 ? (obj - actuelCumul) / stepsLeft : 0;
-      traj.push(Math.round(actuelCumul + step * (i - (moisActif + 1))));
-    }
+    traj.push(Math.round(SOLDE_DEPART + (obj - SOLDE_DEPART) / 12 * i));
   }
   return traj;
 }
@@ -464,10 +455,11 @@ function updateDashboard() {
   const obj = parseFloat(document.getElementById('objectif-input').value) || state.currentObj;
   const traj = getTrajectoire();
   const actuel = getCumul(moisActif);
-  const ideal = traj[moisActif + 1];
+  const moisRestants = 11 - moisActif; // mois restants après ce mois (juin→jan = 8 si on est en mai)
+  const effortMensuel = moisRestants > 0 ? Math.round((obj - actuel) / moisRestants) : (obj - actuel);
+  const ideal = traj[moisActif]; // pour le graphique
   const reste = Math.max(0, obj - actuel);
   const diff = actuel - ideal;
-  const moisRestants = 11 - moisActif;
 
   // Métriques
   const mActuel = document.getElementById('m-actuel');
@@ -476,7 +468,8 @@ function updateDashboard() {
   document.getElementById('m-actuel-sub').textContent = 'sur ' + fmt(obj);
   document.getElementById('m-reste').textContent = fmt(reste);
   document.getElementById('m-reste-sub').textContent = moisRestants + ' mois restants';
-  document.getElementById('m-ideal').textContent = fmt(ideal);
+  document.getElementById('m-ideal').textContent = fmt(effortMensuel);
+  document.getElementById('m-ideal-sub').textContent = moisRestants + ' mois restants';
 
   // Statut
   let label, cls;
@@ -495,7 +488,7 @@ function updateDashboard() {
 // ─── CHART ────────────────────────────────────────────
 function buildChart(obj, traj) {
   const labels = ['Départ', ...MOIS];
-  const realData = [SOLDE_INITIAL_PERSO];
+  const realData = [SOLDE_DEPART];
   for (let i = 0; i < 12; i++) {
     const m = state.mois['M' + i];
     realData.push(m ? getCumul(i) : null);
@@ -648,7 +641,7 @@ function buildHistory() {
     el.innerHTML = '<span style="font-size:13px;color:var(--text3);font-family:\'DM Mono\',monospace">Aucune donnée enregistrée manuellement.</span>';
     return;
   }
-  let cumul = SOLDE_INITIAL_PERSO;
+  let cumul = SOLDE_DEPART;
   // Inclure aussi les mois préfilled dans le cumul
   let html = '';
   for (let i = 0; i < 12; i++) {
