@@ -471,7 +471,7 @@ function updateDashboard() {
   const obj = parseFloat(document.getElementById('objectif-input').value) || state.currentObj;
   const traj = getTrajectoire();
   const actuel = getCumul(moisActif);
-  const moisRestants = 12 - moisActif; // mois restants incluant ce mois (mai inclus = 8 si moisActif=3+1... soit 12-3=9→ fév mar avr mai jun jul aoû sep oct nov déc jan)
+  const moisRestants = 12 - moisActif - 1; // mois APRÈS le mois actif jusqu'à jan
   const effortTotal = moisRestants > 0 ? (obj - actuel) / moisRestants : (obj - actuel);
   const effortMensuel = Math.max(0, Math.round(effortTotal - TONTINES_MENSUEL)); // PERSO only
   const ideal = traj[moisActif]; // pour le graphique
@@ -491,24 +491,33 @@ function updateDashboard() {
   document.getElementById('m-perso-cumul').textContent = fmt(persoCumul);
   document.getElementById('m-perso-sub').textContent = 'dont ' + fmt(SOLDE_INITIAL_PERSO) + ' de solde initial';
 
-  // Statut : comparaison PERSO versé ce mois vs effort recommandé pour le mois réel en cours
+  // Statut : PERSO versé ce mois réel vs effort recommandé
   const moisReel = MOIS_COURANT; // mai = 3, toujours fixe
-  const cumulAvantMoisReel = getCumul(moisReel - 1 >= 0 ? moisReel - 1 : 0) - (moisReel > 0 ? 0 : 0);
-  const moisRestantsReel = 12 - moisReel; // mois restants incluant le mois actuel
-  const effortRecommande = Math.max(0, Math.round((obj - (moisReel > 0 ? getCumul(moisReel - 1) : SOLDE_DEPART)) / moisRestantsReel - TONTINES_MENSUEL));
+  // Cumul AVANT le mois réel en cours (sans compter mai)
+  const cumulAvantReel = moisReel > 0 ? (() => {
+    let t = SOLDE_DEPART;
+    for (let i = 0; i < moisReel; i++) {
+      const m = state.mois['M'+i];
+      if (!m || m._prefilled) continue;
+      t += calcMonthTotal(m, i);
+    }
+    return t;
+  })() : SOLDE_DEPART;
+  const moisRestantsReel = 12 - moisReel - 1; // mois APRÈS mai jusqu'à jan = 8
+  const effortRecommande = Math.max(0, Math.round((obj - cumulAvantReel) / moisRestantsReel - TONTINES_MENSUEL));
   const mReel = state.mois['M' + moisReel];
   const persoVerseReel = mReel && !mReel._prefilled ? (parseFloat(mReel.perso) || 0) : null;
   let label, cls;
   if (persoVerseReel === null) {
-    label = '— Mois en cours non encodé'; cls = 'warn';
+    label = 'Mois en cours non encodé'; cls = 'warn';
   } else {
     const delta = persoVerseReel - effortRecommande;
     if (delta >= 0) { label = '✓ +' + fmt(delta) + ' vs recommandé'; cls = 'good'; }
-    else if (delta >= -effortRecommande * 0.1) { label = '~ Proche de l'objectif'; cls = 'warn'; }
+    else if (delta >= -effortRecommande * 0.1) { label = '~ Proche'; cls = 'warn'; }
     else { label = '✗ ' + fmt(Math.abs(delta)) + ' sous le recommandé'; cls = 'bad'; }
   }
   document.getElementById('m-statut').innerHTML = `<span class="badge ${cls}">${cls === 'good' ? '✓' : cls === 'bad' ? '✗' : '~'}</span>`;
-  document.getElementById('m-diff').textContent = persoVerseReel !== null ? 'PERSO versé : ' + fmt(persoVerseReel) + ' · recommandé : ' + fmt(effortRecommande) : 'encode mai pour voir le statut';
+  document.getElementById('m-diff').textContent = persoVerseReel !== null ? 'versé : ' + fmt(persoVerseReel) + ' · recommandé : ' + fmt(effortRecommande) : 'encode ' + MOIS_LONG[moisReel] + ' pour voir le statut';
   const badgeGlobal = document.getElementById('badge-global');
   badgeGlobal.textContent = label;
   badgeGlobal.className = 'badge ' + cls;
