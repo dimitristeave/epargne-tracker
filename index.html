@@ -130,6 +130,47 @@ body{padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-ar
 .loader p{font-size:13px;color:var(--text3);font-family:'DM Mono',monospace}
 .hidden{display:none!important}
 
+/* NAVIGATION ONGLETS */
+.nav{display:flex;margin:0 1.25rem .75rem;background:var(--bg2);border:0.5px solid var(--border);border-radius:99px;padding:4px;gap:4px}
+.nav-btn{flex:1;padding:7px;border-radius:99px;border:none;background:none;color:var(--text3);font-family:'Sora',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
+.nav-btn.active{background:var(--text);color:var(--bg)}
+
+/* BUDGET */
+.budget-wrap{padding:0 1.25rem}
+.bud-section{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1rem}
+.bud-title{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:.75rem}
+.bud-row{display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:0.5px solid var(--border)}
+.bud-row:last-child{border-bottom:none}
+.bud-label{font-size:13px;color:var(--text2)}
+.bud-label.fixed{color:var(--text3)}
+.bud-amt{font-size:13px;font-family:'DM Mono',monospace;font-weight:500;min-width:60px;text-align:right}
+.bud-amt.fixed{color:var(--text3)}
+.bud-amt.red{color:var(--red)}
+.bud-slider-row{padding:.6rem 0;border-bottom:0.5px solid var(--border)}
+.bud-slider-row:last-child{border-bottom:none}
+.bud-slider-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem}
+.bud-slider-label{font-size:13px;color:var(--text2)}
+.bud-slider-val{font-size:14px;font-family:'DM Mono',monospace;font-weight:500;color:var(--amber)}
+input[type=range].amber{accent-color:var(--amber)}
+.revenu-input{width:100%;padding:10px 14px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:var(--bg3);color:var(--text);font-family:'DM Mono',monospace;font-size:20px;font-weight:500;text-align:center}
+.result-box{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1rem}
+.result-row{display:flex;justify-content:space-between;align-items:center;padding:.4rem 0}
+.result-label{font-size:12px;color:var(--text3);font-family:'DM Mono',monospace}
+.result-val{font-size:14px;font-family:'DM Mono',monospace;font-weight:500}
+.result-divider{border:none;border-top:0.5px solid var(--border);margin:.5rem 0}
+.perso-possible{display:flex;justify-content:space-between;align-items:center;padding:.75rem 1.25rem;background:var(--bg3);border-radius:var(--radius-sm);margin-bottom:.75rem}
+.perso-possible-label{font-size:12px;color:var(--text3);font-family:'DM Mono',monospace}
+.perso-possible-val{font-size:22px;font-weight:600;font-family:'DM Mono',monospace}
+.perso-possible-val.good{color:var(--green)}
+.perso-possible-val.warn{color:var(--amber)}
+.perso-possible-val.bad{color:var(--red)}
+.impact-box{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:2rem}
+.impact-title{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:.75rem}
+.impact-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.impact-item{background:var(--bg3);border-radius:var(--radius-sm);padding:.75rem}
+.impact-item-label{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:4px}
+.impact-item-val{font-size:16px;font-weight:600;font-family:'DM Mono',monospace}
+
 /* SIMULATION */
 .sim-box{padding:.75rem 0 .5rem;border-top:0.5px solid var(--border)}
 .sim-title{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:.75rem}
@@ -176,6 +217,13 @@ input[type=range]{width:100%;margin:.25rem 0 .75rem;accent-color:var(--green);cu
     </button>
   </div>
 
+  <!-- NAVIGATION -->
+  <div class="nav">
+    <button class="nav-btn active" id="nav-tracker" onclick="switchTab('tracker')">Tracker</button>
+    <button class="nav-btn" id="nav-budget" onclick="switchTab('budget')">Budget</button>
+  </div>
+
+  <div id="tab-tracker">
   <div class="metrics">
     <div class="metric">
       <div class="metric-label">Épargné</div>
@@ -295,6 +343,121 @@ input[type=range]{width:100%;margin:.25rem 0 .75rem;accent-color:var(--green);cu
     <div class="section-title">Historique</div>
     <div id="hist-list"><span style="font-size:13px;color:var(--text3);font-family:'DM Mono',monospace">Aucune donnée.</span></div>
   </div>
+  </div><!-- /tab-tracker -->
+
+  <!-- BUDGET TAB -->
+  <div id="tab-budget" class="hidden">
+  <div class="budget-wrap">
+
+    <!-- REVENU -->
+    <div class="bud-section">
+      <div class="bud-title">Revenu du mois</div>
+      <input type="number" class="revenu-input" id="bud-revenu" value="3000" step="50" oninput="calcBudget()"/>
+    </div>
+
+    <!-- DÉPENSES FIXES -->
+    <div class="bud-section">
+      <div class="bud-title">Dépenses fixes</div>
+      <div class="bud-row"><span class="bud-label fixed">Loyer</span><span class="bud-amt fixed">600 €</span></div>
+      <div class="bud-row"><span class="bud-label fixed">Tontines</span><span class="bud-amt fixed">429 €</span></div>
+      <div class="bud-row"><span class="bud-label fixed">Assurance véhicule</span><span class="bud-amt fixed">87 €</span></div>
+      <div class="bud-row"><span class="bud-label fixed">Carburant</span><span class="bud-amt fixed">50 €</span></div>
+      <div class="bud-row"><span class="bud-label fixed">Sport</span><span class="bud-amt fixed">25 €</span></div>
+      <div class="bud-row" style="border-top:0.5px solid var(--border2);margin-top:.25rem;padding-top:.75rem;border-bottom:none">
+        <span class="bud-label" style="font-weight:500">Total fixes</span>
+        <span class="bud-amt" style="color:var(--text)">1 191 €</span>
+      </div>
+    </div>
+
+    <!-- DÉPENSES VARIABLES -->
+    <div class="bud-section">
+      <div class="bud-title">Dépenses variables</div>
+
+      <div class="bud-slider-row">
+        <div class="bud-slider-header">
+          <span class="bud-slider-label">Allocation copine</span>
+          <span class="bud-slider-val" id="v-copine">300 €</span>
+        </div>
+        <input type="range" class="amber" id="s-copine" min="0" max="600" step="50" value="300" oninput="onVar('copine',this.value)"/>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);font-family:'DM Mono',monospace"><span>0</span><span>600</span></div>
+      </div>
+
+      <div class="bud-slider-row">
+        <div class="bud-slider-header">
+          <span class="bud-slider-label">Abonnements divers</span>
+          <span class="bud-slider-val" id="v-abo">50 €</span>
+        </div>
+        <input type="range" class="amber" id="s-abo" min="0" max="300" step="10" value="50" oninput="onVar('abo',this.value)"/>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);font-family:'DM Mono',monospace"><span>0</span><span>300</span></div>
+      </div>
+
+      <div class="bud-slider-row">
+        <div class="bud-slider-header">
+          <span class="bud-slider-label">Mes poches (perso)</span>
+          <span class="bud-slider-val" id="v-poches">150 €</span>
+        </div>
+        <input type="range" class="amber" id="s-poches" min="0" max="500" step="25" value="150" oninput="onVar('poches',this.value)"/>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);font-family:'DM Mono',monospace"><span>0</span><span>500</span></div>
+      </div>
+
+      <div class="bud-slider-row">
+        <div class="bud-slider-header">
+          <span class="bud-slider-label">Imprévus</span>
+          <span class="bud-slider-val" id="v-imprev">100 €</span>
+        </div>
+        <input type="range" class="amber" id="s-imprev" min="0" max="500" step="25" value="100" oninput="onVar('imprev',this.value)"/>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);font-family:'DM Mono',monospace"><span>0</span><span>500</span></div>
+      </div>
+
+      <div class="bud-row" style="margin-top:.25rem">
+        <span class="bud-label" style="font-weight:500">Total variables</span>
+        <span class="bud-amt" id="total-var" style="color:var(--text)">600 €</span>
+      </div>
+    </div>
+
+    <!-- RÉSUMÉ -->
+    <div class="result-box">
+      <div class="result-row"><span class="result-label">Revenu</span><span class="result-val green" id="res-revenu">—</span></div>
+      <div class="result-row"><span class="result-label">− Dépenses fixes</span><span class="result-val" style="color:var(--text3)">− 1 191 €</span></div>
+      <div class="result-row"><span class="result-label">− Dépenses variables</span><span class="result-val" id="res-var" style="color:var(--text3)">—</span></div>
+      <hr class="result-divider"/>
+      <div class="result-row"><span class="result-label" style="font-weight:500;color:var(--text)">Disponible</span><span class="result-val" id="res-dispo" style="font-size:18px">—</span></div>
+    </div>
+
+    <!-- PERSO POSSIBLE -->
+    <div class="perso-possible">
+      <div>
+        <div class="perso-possible-label">PERSO épargnable</div>
+        <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:2px" id="pp-recommande"></div>
+      </div>
+      <span class="perso-possible-val" id="pp-val">—</span>
+    </div>
+
+    <!-- IMPACT -->
+    <div class="impact-box">
+      <div class="impact-title">Impact sur l'objectif</div>
+      <div class="impact-grid">
+        <div class="impact-item">
+          <div class="impact-item-label">Projection janvier</div>
+          <div class="impact-item-val" id="imp-proj">—</div>
+        </div>
+        <div class="impact-item">
+          <div class="impact-item-label">Effort mois suivant</div>
+          <div class="impact-item-val" id="imp-effort">—</div>
+        </div>
+        <div class="impact-item">
+          <div class="impact-item-label">Objectif atteint</div>
+          <div class="impact-item-val" id="imp-ok">—</div>
+        </div>
+        <div class="impact-item">
+          <div class="impact-item-label">Écart objectif</div>
+          <div class="impact-item-val" id="imp-ecart">—</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  </div><!-- /tab-budget -->
 
 </div>
 
@@ -783,6 +946,79 @@ function runSimulation() {
   const atteint = projJan >= obj;
   document.getElementById('sim-status').textContent = atteint ? '✓ Oui' : '✗ Non';
   document.getElementById('sim-status').className = 'sim-result-val ' + (atteint ? 'good' : 'bad');
+}
+
+// ══════════════════════════════════════════════════════
+// TAB SWITCHING
+// ══════════════════════════════════════════════════════
+function switchTab(tab) {
+  document.getElementById('tab-tracker').classList.toggle('hidden', tab !== 'tracker');
+  document.getElementById('tab-budget').classList.toggle('hidden', tab !== 'budget');
+  document.getElementById('nav-tracker').classList.toggle('active', tab === 'tracker');
+  document.getElementById('nav-budget').classList.toggle('active', tab === 'budget');
+  if (tab === 'budget') calcBudget();
+}
+
+// ══════════════════════════════════════════════════════
+// BUDGET CALCULATOR
+// ══════════════════════════════════════════════════════
+const FIXES = 600 + 429 + 87 + 50 + 25; // 1191€
+
+function onVar(key, val) {
+  document.getElementById('v-' + key).textContent = fmt(parseInt(val));
+  calcBudget();
+}
+
+function calcBudget() {
+  const revenu   = parseFloat(document.getElementById('bud-revenu').value) || 0;
+  const copine   = parseInt(document.getElementById('s-copine').value);
+  const abo      = parseInt(document.getElementById('s-abo').value);
+  const poches   = parseInt(document.getElementById('s-poches').value);
+  const imprev   = parseInt(document.getElementById('s-imprev').value);
+  const totalVar = copine + abo + poches + imprev;
+  const dispo    = revenu - FIXES - totalVar;
+  const perso    = Math.max(0, dispo); // tout ce qui reste = PERSO épargnable
+
+  // Résumé
+  document.getElementById('res-revenu').textContent   = fmt(revenu);
+  document.getElementById('res-var').textContent      = '− ' + fmt(totalVar);
+  document.getElementById('total-var').textContent    = fmt(totalVar);
+  document.getElementById('res-dispo').textContent    = fmt(dispo);
+  document.getElementById('res-dispo').className      = 'result-val ' + (dispo >= 0 ? '' : 'red');
+
+  // PERSO possible
+  const obj = parseFloat(document.getElementById('objectif-input').value) || state.currentObj;
+  const effortRec = effortPerso(obj, moisActif);
+  document.getElementById('pp-val').textContent  = fmt(perso);
+  document.getElementById('pp-val').className    = 'perso-possible-val ' +
+    (perso >= effortRec ? 'good' : perso >= effortRec * 0.8 ? 'warn' : 'bad');
+  document.getElementById('pp-recommande').textContent = 'recommandé : ' + fmt(effortRec);
+
+  // Impact sur objectif
+  // Cumul simulé = cumul avant mois actif + mois actif avec perso simulé
+  let cumulAvant = 0;
+  for (let i = 0; i < moisActif; i++) {
+    const m = state.mois['M' + i];
+    if (m) cumulAvant += monthTotal(m);
+  }
+  const cumulAvecSim = cumulAvant + TONTINES_TOTAL + perso;
+  const moisApres    = NB_MOIS - moisActif - 1;
+  const rythme       = perso + TONTINES_TOTAL;
+  const projJan      = cumulAvecSim + rythme * moisApres;
+  const effortSuiv   = moisActif + 1 < NB_MOIS
+    ? Math.max(0, Math.round((obj - cumulAvecSim) / (NB_MOIS - moisActif - 1) - TONTINES_TOTAL))
+    : 0;
+  const ecart        = projJan - obj;
+  const atteint      = projJan >= obj;
+
+  document.getElementById('imp-proj').textContent   = fmt(projJan);
+  document.getElementById('imp-proj').className     = 'impact-item-val ' + (atteint ? 'good' : 'bad');
+  document.getElementById('imp-effort').textContent = fmt(effortSuiv);
+  document.getElementById('imp-effort').className   = 'impact-item-val';
+  document.getElementById('imp-ok').textContent     = atteint ? '✓ Oui' : '✗ Non';
+  document.getElementById('imp-ok').className       = 'impact-item-val ' + (atteint ? 'good' : 'bad');
+  document.getElementById('imp-ecart').textContent  = (ecart >= 0 ? '+' : '') + fmt(ecart);
+  document.getElementById('imp-ecart').className    = 'impact-item-val ' + (ecart >= 0 ? 'good' : 'bad');
 }
 
 // ══════════════════════════════════════════════════════
