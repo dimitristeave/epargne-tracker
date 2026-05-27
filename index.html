@@ -129,6 +129,20 @@ body{padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-ar
 @keyframes spin{to{transform:rotate(360deg)}}
 .loader p{font-size:13px;color:var(--text3);font-family:'DM Mono',monospace}
 .hidden{display:none!important}
+
+/* SIMULATION */
+.sim-box{padding:.75rem 0 .5rem;border-top:0.5px solid var(--border)}
+.sim-title{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:.75rem}
+.sim-row{display:flex;align-items:center;gap:8px;margin-bottom:.5rem}
+.sim-label{font-size:12px;color:var(--text3)}
+.sim-val{font-size:15px;font-weight:600;font-family:'DM Mono',monospace;color:var(--green)}
+input[type=range]{width:100%;margin:.25rem 0 .75rem;accent-color:var(--green);cursor:pointer}
+.sim-results{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.sim-result-item{background:var(--bg3);border-radius:var(--radius-sm);padding:.6rem .75rem}
+.sim-result-label{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;display:block;margin-bottom:3px}
+.sim-result-val{font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:var(--text)}
+.sim-result-val.good{color:var(--green)}
+.sim-result-val.bad{color:var(--red)}
 </style>
 </head>
 <body>
@@ -242,8 +256,32 @@ body{padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-ar
     </div>
     <div class="perso-row">
       <div><div class="tontine-name">PERSO</div><div class="tontine-tag">min. 1 000 €</div></div>
-      <input type="number" id="perso-input" value="1000" min="0" step="100" oninput="updateTotal()"/>
+      <input type="number" id="perso-input" value="1000" min="0" step="100" oninput="updateTotal();runSimulation()"/>
       <span class="perso-suffix">€</span>
+    </div>
+    <!-- SIMULATION -->
+    <div class="sim-box">
+      <div class="sim-title">Simulation</div>
+      <div class="sim-row">
+        <span class="sim-label">Si je mets</span>
+        <span class="sim-val" id="sim-amount">1 000 €</span>
+        <span class="sim-label">ce mois</span>
+      </div>
+      <input type="range" id="sim-slider" min="0" max="5000" step="50" value="1000" oninput="onSlider()"/>
+      <div class="sim-results">
+        <div class="sim-result-item">
+          <span class="sim-result-label">Projection janvier</span>
+          <span class="sim-result-val" id="sim-proj">—</span>
+        </div>
+        <div class="sim-result-item">
+          <span class="sim-result-label">Effort mois suivant</span>
+          <span class="sim-result-val" id="sim-effort">—</span>
+        </div>
+        <div class="sim-result-item">
+          <span class="sim-result-label">Objectif atteint</span>
+          <span class="sim-result-val" id="sim-status">—</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -573,6 +611,7 @@ function loadInputs() {
   document.getElementById('perso-input').value = m.perso !== undefined ? m.perso : 1000;
   ['elith','elitef','ciyab'].forEach(k => refreshAmt(k, TONTINES_MONTANT[k]));
   updateTotal();
+  runSimulation();
 }
 
 function onCheck(key, montant, amtId) {
@@ -693,6 +732,57 @@ function toast(msg) {
   el.textContent = msg; el.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ══════════════════════════════════════════════════════
+// SIMULATION
+// ══════════════════════════════════════════════════════
+function onSlider() {
+  const val = parseInt(document.getElementById('sim-slider').value);
+  document.getElementById('perso-input').value = val;
+  document.getElementById('sim-amount').textContent = fmt(val);
+  updateTotal();
+  runSimulation();
+}
+
+function runSimulation() {
+  const obj = parseFloat(document.getElementById('objectif-input').value) || state.currentObj;
+  const simPerso = parseFloat(document.getElementById('perso-input').value) || 0;
+  // Slider sync
+  document.getElementById('sim-slider').value = simPerso;
+  document.getElementById('sim-amount').textContent = fmt(simPerso);
+
+  // Cumul simulé jusqu'au mois actif (en remplaçant le perso du mois actif par simPerso)
+  let cumulSim = 0;
+  for (let i = 0; i < moisActif; i++) {
+    const m = state.mois['M' + i];
+    if (m) cumulSim += monthTotal(m);
+  }
+  // Ajoute le mois actif simulé
+  const tontinesCochees = (document.getElementById('c-elith').checked ? 152 : 0)
+    + (document.getElementById('c-elitef').checked ? 77 : 0)
+    + (document.getElementById('c-ciyab').checked ? 200 : 0);
+  cumulSim += tontinesCochees + simPerso;
+
+  // Projection janvier avec ce rythme
+  const moisRestantsApres = NB_MOIS - moisActif - 1; // mois après le mois actif
+  const rythme = simPerso + TONTINES_TOTAL;
+  const projJan = cumulSim + rythme * moisRestantsApres;
+
+  // Effort mois suivant si on encode simPerso ce mois
+  const effortSuivant = moisActif + 1 < NB_MOIS
+    ? Math.max(0, Math.round((obj - cumulSim) / (NB_MOIS - moisActif - 1) - TONTINES_TOTAL))
+    : 0;
+
+  // Affichage
+  document.getElementById('sim-proj').textContent = fmt(projJan);
+  document.getElementById('sim-proj').className = 'sim-result-val ' + (projJan >= obj ? 'good' : 'bad');
+  document.getElementById('sim-effort').textContent = fmt(effortSuivant);
+  document.getElementById('sim-effort').className = 'sim-result-val';
+
+  const atteint = projJan >= obj;
+  document.getElementById('sim-status').textContent = atteint ? '✓ Oui' : '✗ Non';
+  document.getElementById('sim-status').className = 'sim-result-val ' + (atteint ? 'good' : 'bad');
 }
 
 // ══════════════════════════════════════════════════════
