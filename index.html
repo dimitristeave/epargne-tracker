@@ -31,6 +31,18 @@ body{padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-ar
 .sync-dot.error{background:var(--red)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
+/* PASSWORD */
+.pwd-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem}
+.pwd-logo{font-size:24px;font-weight:600;letter-spacing:-.02em;margin-bottom:.5rem}
+.pwd-sub{font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:2.5rem}
+.pwd-box{width:100%;max-width:320px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.5rem}
+.pwd-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:.5rem}
+.pwd-input{width:100%;padding:10px 14px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:var(--bg3);color:var(--text);font-family:'DM Mono',monospace;font-size:16px;letter-spacing:.1em;margin-bottom:.75rem}
+.pwd-input.error{border-color:var(--red)}
+.pwd-btn{width:100%;padding:12px;border-radius:var(--radius-sm);border:none;background:var(--green);color:#000;font-family:'Sora',sans-serif;font-weight:600;font-size:14px;cursor:pointer}
+.pwd-btn:active{opacity:.8}
+.pwd-error{font-size:12px;color:var(--red);font-family:'DM Mono',monospace;text-align:center;margin-top:.5rem;min-height:16px}
+
 /* SETUP */
 .setup-banner{margin:1rem 1.25rem;background:rgba(245,165,36,0.1);border:0.5px solid var(--amber);border-radius:var(--radius);padding:1rem 1.25rem}
 .setup-banner h3{font-size:13px;font-weight:600;color:var(--amber);margin-bottom:.4rem}
@@ -203,8 +215,21 @@ input[type=range]{width:100%;margin:.25rem 0 .75rem;accent-color:var(--green);cu
 <body>
 <div class="toast" id="toast"></div>
 
+<!-- PASSWORD -->
+<div id="pwd-screen">
+  <div class="pwd-logo">Épargne Tracker</div>
+  <div class="pwd-sub">Accès sécurisé</div>
+  <div class="pwd-box">
+    <div class="pwd-label">Mot de passe</div>
+    <input type="password" class="pwd-input" id="pwd-input" placeholder="••••••••"
+      onkeydown="if(event.key==='Enter')checkPwd()"/>
+    <button class="pwd-btn" onclick="checkPwd()">Entrer</button>
+    <div class="pwd-error" id="pwd-error"></div>
+  </div>
+</div>
+
 <!-- SETUP -->
-<div id="setup-screen">
+<div id="setup-screen" class="hidden">
   <div class="header">
     <div><div class="header-title">Configuration</div><div class="header-year">Épargne Tracker</div></div>
   </div>
@@ -532,6 +557,7 @@ function init() {
 function show(id) {
   ['setup-screen','loader-screen','main-screen'].forEach(s =>
     document.getElementById(s).classList.toggle('hidden', s !== id));
+  document.getElementById('pwd-screen').classList.add('hidden');
 }
 
 // ══════════════════════════════════════════════════════
@@ -1071,9 +1097,37 @@ function calcBudget() {
 }
 
 // ══════════════════════════════════════════════════════
+// PASSWORD
+// ══════════════════════════════════════════════════════
+// ⚠ Remplace TON_MOT_DE_PASSE par ton mot de passe
+const APP_PASSWORD = 'maeva2001';
+const SESSION_KEY  = 'epargne_auth';
+
+function checkPwd() {
+  const input = document.getElementById('pwd-input');
+  const err   = document.getElementById('pwd-error');
+  if (input.value === APP_PASSWORD) {
+    sessionStorage.setItem(SESSION_KEY, '1');
+    document.getElementById('pwd-screen').classList.add('hidden');
+    err.textContent = '';
+    input.className = 'pwd-input';
+    init();
+  } else {
+    input.className = 'pwd-input error';
+    err.textContent = 'Mot de passe incorrect';
+    input.value = '';
+    input.focus();
+  }
+}
+
+// ══════════════════════════════════════════════════════
 // GO
 // ══════════════════════════════════════════════════════
-init();
+// Vérifie si déjà authentifié dans cette session
+if (sessionStorage.getItem(SESSION_KEY) === '1') {
+  document.getElementById('pwd-screen').classList.add('hidden');
+  init();
+}
 </script>
 </body>
 </html>
