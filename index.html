@@ -32,7 +32,7 @@ body{padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-ar
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* PASSWORD */
-.pwd-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem}
+.pwd-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem;text-align:center}
 .pwd-logo{font-size:24px;font-weight:600;letter-spacing:-.02em;margin-bottom:.5rem}
 .pwd-sub{font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:2.5rem}
 .pwd-box{width:100%;max-width:320px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.5rem}
@@ -216,7 +216,7 @@ input[type=range]{width:100%;margin:.25rem 0 .75rem;accent-color:var(--green);cu
 <div class="toast" id="toast"></div>
 
 <!-- PASSWORD -->
-<div id="pwd-screen">
+<div id="pwd-screen" class="pwd-screen">
   <div class="pwd-logo">Épargne Tracker</div>
   <div class="pwd-sub">Accès sécurisé</div>
   <div class="pwd-box">
