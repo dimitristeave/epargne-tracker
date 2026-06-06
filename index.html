@@ -217,13 +217,13 @@ input[type=range]{width:100%;margin:.25rem 0 .75rem;accent-color:var(--green);cu
 
 <!-- PASSWORD -->
 <div id="pwd-screen" class="pwd-screen">
-  <div class="pwd-logo">Epargne Tracker</div>
+  <div class="pwd-logo">Épargne Tracker</div>
   <div class="pwd-sub">Accès sécurisé</div>
   <div class="pwd-box">
     <div class="pwd-label">Mot de passe</div>
     <input type="password" class="pwd-input" id="pwd-input" placeholder="••••••••"
       onkeydown="if(event.key==='Enter')checkPwd()"/>
-    <button class="pwd-btn" onclick="checkPwd()">Valider</button>
+    <button class="pwd-btn" onclick="checkPwd()">Entrer</button>
     <div class="pwd-error" id="pwd-error"></div>
   </div>
 </div>
@@ -777,20 +777,27 @@ function buildChart(obj) {
     if (realData[i] !== null) { lastIdx = i; lastVal = realData[i]; }
   }
 
-  // PERSO du dernier mois encodé
-  let lastPerso = 1000;
-  for (let i = NB_MOIS - 1; i >= 0; i--) {
-    const m = state.mois['M' + i];
-    if (m && !m._pre) { lastPerso = parseFloat(m.perso) || 0; break; }
-  }
-  const rythme = lastPerso + TONTINES_TOTAL;
-
-  // Projection depuis dernier point réel
+  // Projection :
+  // - mois déjà encodés → cumul réel
+  // - mois non encodés  → on suppose 1 429 €/mois (1000 PERSO + 429 tontines)
+  const RYTHME_STD = 1000 + TONTINES_TOTAL; // 1 429 €/mois
   const projData = Array(13).fill(null);
   if (lastIdx < NB_MOIS) {
+    // Point de jonction avec la courbe réelle
     projData[lastIdx] = lastVal;
+    // Pour chaque mois futur : si encodé → cumul réel, sinon → +1429
+    let projCumul = lastVal;
     for (let i = lastIdx + 1; i <= NB_MOIS; i++) {
-      projData[i] = Math.round(lastVal + rythme * (i - lastIdx));
+      const mIdx = i - 1; // index mois (0=fév, 1=mar, ...)
+      const m = state.mois['M' + mIdx];
+      if (m && !m._pre) {
+        // Mois encodé : on prend le cumul réel
+        projCumul = cumul(mIdx);
+      } else {
+        // Mois non encodé : on suppose le rythme standard
+        projCumul += RYTHME_STD;
+      }
+      projData[i] = Math.round(projCumul);
     }
   }
 
@@ -1100,7 +1107,7 @@ function calcBudget() {
 // PASSWORD
 // ══════════════════════════════════════════════════════
 // ⚠ Remplace TON_MOT_DE_PASSE par ton mot de passe
-const APP_PASSWORD = 'maeva2001';
+const APP_PASSWORD = 'TON_MOT_DE_PASSE';
 const SESSION_KEY  = 'epargne_auth';
 
 function checkPwd() {
